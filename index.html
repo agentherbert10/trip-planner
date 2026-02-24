@@ -311,6 +311,7 @@
       const [activeTab, setActiveTab] = useState('itinerary');
       const [itinerary, setItinerary] = useState([]);
       const [packing, setPacking] = useState([]);
+      const [todos, setTodos] = useState([]);
       const [restaurants, setRestaurants] = useState([]);
       const [activities, setActivities] = useState([]);
       const [packingFilter, setPackingFilter] = useState('Justin');
@@ -361,6 +362,7 @@
 
           setItinerary(mergedItinerary);
           setPacking(mergedPacking);
+          setTodos(data.todos || []);
           setRestaurants(data.restaurants || []);
           setActivities(data.activities || []);
         } else {
@@ -371,6 +373,17 @@
           setPacking(
             defaultPackingItems.map((item, i) => ({ id: Date.now() + i, ...item, packed: false }))
           );
+          // Initialize default todos
+          const defaultTodos = [
+            { task: 'Email hotels' },
+            { task: 'Confirm car rental' },
+            { task: 'Set up Tailscale and test' },
+            { task: 'Check weather report for rain in Oceanside' },
+            { task: 'Schedule with Lupe' },
+            { task: 'Turn off heat' },
+            { task: 'Follow up with home insurance' }
+          ];
+          setTodos(defaultTodos.map((t, i) => ({ id: Date.now() + i, ...t, completed: false })));
         }
       }, []);
 
@@ -404,8 +417,8 @@
 
       // Save data to localStorage whenever it changes
       useEffect(() => {
-        localStorage.setItem('tripData', JSON.stringify({ itinerary, packing, restaurants, activities }));
-      }, [itinerary, packing, restaurants, activities]);
+        localStorage.setItem('tripData', JSON.stringify({ itinerary, packing, todos, restaurants, activities }));
+      }, [itinerary, packing, todos, restaurants, activities]);
 
       // Initialize map
       useEffect(() => {
@@ -529,6 +542,25 @@
         setRestaurants(restaurants.filter((r) => r.id !== id));
       };
 
+      // Todo functions
+      const addTodo = (task) => {
+        if (task) {
+          setTodos([...todos, { id: Date.now(), task, completed: false }]);
+        }
+      };
+
+      const toggleTodo = (id) => {
+        setTodos(
+          todos.map((t) =>
+            t.id === id ? { ...t, completed: !t.completed } : t
+          )
+        );
+      };
+
+      const deleteTodo = (id) => {
+        setTodos(todos.filter((t) => t.id !== id));
+      };
+
       // Activity functions
       const addActivity = (name, location, lat, lng) => {
         if (name && location) {
@@ -570,6 +602,12 @@
               onClick={() => setActiveTab('packing')}
             >
               Packing List
+            </button>
+            <button
+              className={`tab-btn ${activeTab === 'todos' ? 'active' : ''}`}
+              onClick={() => setActiveTab('todos')}
+            >
+              To-Do
             </button>
             <button
               className={`tab-btn ${activeTab === 'map' ? 'active' : ''}`}
@@ -735,6 +773,35 @@
             </div>
           </div>
 
+          {/* Todo Tab */}
+          <div className={`tab-content ${activeTab === 'todos' ? 'active' : ''}`}>
+            <div className="section">
+              <h2>To-Do List</h2>
+              <TodoForm onAdd={addTodo} />
+              <div className="item-list">
+                {todos.map((todo) => (
+                  <div
+                    key={todo.id}
+                    className={`item ${todo.completed ? 'completed' : ''}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={todo.completed}
+                      onChange={() => toggleTodo(todo.id)}
+                    />
+                    <span className="item-content">{todo.task}</span>
+                    <button
+                      className="item-delete"
+                      onClick={() => deleteTodo(todo.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Map Tab */}
           <div className={`tab-content ${activeTab === 'map' ? 'active' : ''}`}>
             <div className="section">
@@ -887,6 +954,27 @@
             value={activity}
             onChange={(e) => setActivity(e.target.value)}
             placeholder="Activity"
+          />
+          <button onClick={handleSubmit}>Add</button>
+        </div>
+      );
+    }
+
+    function TodoForm({ onAdd }) {
+      const [task, setTask] = useState('');
+
+      const handleSubmit = () => {
+        onAdd(task);
+        setTask('');
+      };
+
+      return (
+        <div className="input-group">
+          <input
+            type="text"
+            value={task}
+            onChange={(e) => setTask(e.target.value)}
+            placeholder="Add to-do..."
           />
           <button onClick={handleSubmit}>Add</button>
         </div>
