@@ -252,7 +252,7 @@
       const [itinerary, setItinerary] = useState([]);
       const [packing, setPacking] = useState([]);
       const [restaurants, setRestaurants] = useState([]);
-      const [packingFilter, setPackingFilter] = useState('All');
+      const [packingFilter, setPackingFilter] = useState('Justin');
       const mapRef = useRef(null);
       const mapInstanceRef = useRef(null);
 
@@ -516,7 +516,7 @@
               
               {/* Segment Control */}
               <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', backgroundColor: '#f0f0f0', padding: '4px', borderRadius: '6px', width: 'fit-content' }}>
-                {['All', 'Justin', 'Eunice', 'Codie'].map((person) => (
+                {['Justin', 'Eunice', 'Codie'].map((person) => (
                   <button
                     key={person}
                     onClick={() => setPackingFilter(person)}
@@ -539,9 +539,7 @@
               <PackingForm onAdd={addPackingItem} />
               {(() => {
                 // Filter by person first
-                const filtered = packingFilter === 'All' 
-                  ? packing 
-                  : packing.filter((item) => item.person === packingFilter);
+                const filtered = packing.filter((item) => item.person === packingFilter);
                 
                 // Then group by category
                 const grouped = {};
