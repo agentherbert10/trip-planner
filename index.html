@@ -369,13 +369,31 @@
           setPacking(
             defaultPackingItems.map((item, i) => ({ id: Date.now() + i, ...item, packed: false }))
           );
-          // Initialize with default restaurants
-          setRestaurants([
-            { id: Date.now() + 1, name: 'The Wai Kai Wave', location: 'Ewa Beach', lat: 21.30, lng: -157.82, visited: false },
-            { id: Date.now() + 2, name: 'Kids City Kapolei', location: 'Kapolei', lat: 21.32907, lng: -158.08665, visited: false },
-            { id: Date.now() + 3, name: 'Costco Food Court', location: 'Kapolei', lat: 21.32676, lng: -158.08761, visited: false },
-            { id: Date.now() + 4, name: "Roy's Ko Olina", location: 'Kapolei', lat: 21.3384, lng: -158.1230, visited: false }
-          ]);
+        }
+      }, []);
+
+      // Initialize default restaurants on load
+      useEffect(() => {
+        const saved = localStorage.getItem('tripData');
+        if (!saved) {
+          const defaultRestaurants = [
+            { name: 'The Wai Kai Wave', location: 'Ewa Beach', lat: 21.3025, lng: -157.8247 },
+            { name: 'Kids City Kapolei', location: 'Kapolei', lat: 21.32907, lng: -158.08665 },
+            { name: 'Costco Food Court', location: 'Kapolei', lat: 21.32676, lng: -158.08761 },
+            { name: "Roy's Ko Olina", location: 'Kapolei', lat: 21.3384, lng: -158.1230 },
+            { name: 'Pig and the Lady', location: 'Kaimuki', lat: 21.3006, lng: -157.8280 },
+            { name: "O'Kim's Korean Kitchen", location: 'Chinatown', lat: 21.3178, lng: -157.8628 },
+            { name: 'Asahi Grill', location: 'Kaimuki', lat: 21.2962, lng: -157.8288 },
+            { name: 'Musubi Cafe Iyasume', location: 'Waikiki', lat: 21.2880, lng: -157.8256 },
+            { name: "Ray's Kiawe Chicken", location: 'Haleiwa', lat: 21.5844, lng: -158.1016 },
+            { name: "Zippy's", location: 'Kapolei', lat: 21.3299, lng: -158.0867 },
+            { name: 'Foodland', location: 'Kapolei', lat: 21.3262, lng: -158.0899 }
+          ];
+          setRestaurants(defaultRestaurants.map((r, i) => ({
+            id: Date.now() + i,
+            ...r,
+            visited: false
+          })));
         }
       }, []);
 
