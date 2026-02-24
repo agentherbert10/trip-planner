@@ -312,6 +312,7 @@
       const [itinerary, setItinerary] = useState([]);
       const [packing, setPacking] = useState([]);
       const [restaurants, setRestaurants] = useState([]);
+      const [activities, setActivities] = useState([]);
       const [packingFilter, setPackingFilter] = useState('Justin');
       const [selectedLocation, setSelectedLocation] = useState(null);
       const mapRef = useRef(null);
@@ -361,6 +362,7 @@
           setItinerary(mergedItinerary);
           setPacking(mergedPacking);
           setRestaurants(data.restaurants || []);
+          setActivities(data.activities || []);
         } else {
           // First load: initialize with defaults
           setItinerary(
@@ -377,16 +379,24 @@
         const saved = localStorage.getItem('tripData');
         if (!saved) {
           const defaultRestaurants = [
-            { name: 'Kids City Kapolei', location: 'Kapolei', lat: 21.32907, lng: -158.08665 },
-            { name: 'Costco Food Court', location: 'Kapolei', lat: 21.32676, lng: -158.08761 },
             { name: "Roy's Ko Olina", location: 'Kapolei', lat: 21.3384, lng: -158.1230 },
             { name: "Ray's Kiawe Chicken", location: 'Haleiwa', lat: 21.5844, lng: -158.1016 },
             { name: "Zippy's", location: 'Kapolei', lat: 21.3299, lng: -158.0867 },
             { name: 'Foodland', location: 'Kapolei', lat: 21.3262, lng: -158.0899 }
           ];
+          const defaultActivities = [
+            { name: 'Kids City Kapolei', location: 'Kapolei', lat: 21.32907, lng: -158.08665 },
+            { name: 'Costco Food Court', location: 'Kapolei', lat: 21.32676, lng: -158.08761 },
+            { name: 'The LineUp at Wai Kai', location: 'Ewa Beach', lat: 21.3025, lng: -157.8247 }
+          ];
           setRestaurants(defaultRestaurants.map((r, i) => ({
             id: Date.now() + i,
             ...r,
+            visited: false
+          })));
+          setActivities(defaultActivities.map((a, i) => ({
+            id: Date.now() + 1000 + i,
+            ...a,
             visited: false
           })));
         }
@@ -394,8 +404,8 @@
 
       // Save data to localStorage whenever it changes
       useEffect(() => {
-        localStorage.setItem('tripData', JSON.stringify({ itinerary, packing, restaurants }));
-      }, [itinerary, packing, restaurants]);
+        localStorage.setItem('tripData', JSON.stringify({ itinerary, packing, restaurants, activities }));
+      }, [itinerary, packing, restaurants, activities]);
 
       // Initialize map
       useEffect(() => {
@@ -426,12 +436,13 @@
         }
       }, [activeTab]);
 
-      // Add restaurant markers to map
+      // Add restaurant and activity markers to map
       useEffect(() => {
         if (mapInstanceRef.current && activeTab === 'map') {
-          // Clear existing restaurant markers only (keep hotel markers)
+          // Clear existing restaurant and activity markers only (keep hotel markers)
           mapInstanceRef.current.eachLayer((layer) => {
-            if (layer instanceof L.Marker && layer._popup && layer._popup._content && layer._popup._content.includes('restaurant')) {
+            if (layer instanceof L.Marker && layer._popup && layer._popup._content && 
+                (layer._popup._content.includes('restaurant') || layer._popup._content.includes('activity'))) {
               mapInstanceRef.current.removeLayer(layer);
             }
           });
@@ -449,8 +460,22 @@
               marker.bindPopup(`<b>${visited}${r.name}</b><br><small class="restaurant">${r.location}</small>`);
             }
           });
+
+          // Add new activity markers
+          activities.forEach((a) => {
+            if (a.lat && a.lng) {
+              const activityIcon = L.divIcon({
+                html: `<div style="background: ${a.visited ? '#87CEEB' : '#FFB6C1'}; padding: 6px 10px; border-radius: 16px; font-size: 14px;">🎯</div>`,
+                iconSize: [32, 32],
+                className: 'activity-marker'
+              });
+              const marker = L.marker([a.lat, a.lng], { icon: activityIcon }).addTo(mapInstanceRef.current);
+              const visited = a.visited ? '✓ ' : '';
+              marker.bindPopup(`<b>${visited}${a.name}</b><br><small class="activity">${a.location}</small>`);
+            }
+          });
         }
-      }, [restaurants, activeTab]);
+      }, [restaurants, activities, activeTab]);
 
       // Itinerary functions
       const addItineraryItem = (date, time, activity) => {
@@ -502,6 +527,28 @@
 
       const deleteRestaurant = (id) => {
         setRestaurants(restaurants.filter((r) => r.id !== id));
+      };
+
+      // Activity functions
+      const addActivity = (name, location, lat, lng) => {
+        if (name && location) {
+          setActivities([
+            ...activities,
+            { id: Date.now(), name, location, lat, lng, visited: false },
+          ]);
+        }
+      };
+
+      const toggleActivity = (id) => {
+        setActivities(
+          activities.map((a) =>
+            a.id === id ? { ...a, visited: !a.visited } : a
+          )
+        );
+      };
+
+      const deleteActivity = (id) => {
+        setActivities(activities.filter((a) => a.id !== id));
       };
 
       return (
@@ -737,10 +784,36 @@
                       </div>
                     ))}
                   </div>
+                  <div className="sidebar-category">
+                    <h3>🎯 Activities</h3>
+                    {activities.map((a) => (
+                      <div
+                        key={a.id}
+                        className={`sidebar-item ${selectedLocation?.id === a.id ? 'active' : ''}`}
+                        onClick={() => {
+                          if (a.lat && a.lng) {
+                            setSelectedLocation(a);
+                            if (mapInstanceRef.current) {
+                              mapInstanceRef.current.setView([a.lat, a.lng], 14);
+                            }
+                          }
+                        }}
+                      >
+                        {a.name}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <h2 style={{ marginTop: '30px' }}>Add Restaurants</h2>
-              <RestaurantForm onAdd={addRestaurant} />
+              <h2 style={{ marginTop: '30px' }}>Add Restaurants & Activities</h2>
+              <div style={{ marginBottom: '20px' }}>
+                <h3 style={{ fontSize: '14px', marginBottom: '10px' }}>Restaurants</h3>
+                <RestaurantForm onAdd={addRestaurant} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '14px', marginBottom: '10px' }}>Activities</h3>
+                <ActivityForm onAdd={addActivity} />
+              </div>
               <div className="item-list">
                 {restaurants.map((r) => (
                   <div
@@ -887,6 +960,57 @@
           </div>
           <div style={{ fontSize: '12px', color: '#999', marginBottom: '20px' }}>
             💡 Tip: Click on the map to get coordinates, then add them to place the restaurant on the map
+          </div>
+          <div className="input-group">
+            <input
+              type="number"
+              step="0.0001"
+              value={lat}
+              onChange={(e) => setLat(e.target.value)}
+              placeholder="Latitude (optional)"
+            />
+            <input
+              type="number"
+              step="0.0001"
+              value={lng}
+              onChange={(e) => setLng(e.target.value)}
+              placeholder="Longitude (optional)"
+            />
+          </div>
+        </>
+      );
+    }
+
+    function ActivityForm({ onAdd }) {
+      const [name, setName] = useState('');
+      const [location, setLocation] = useState('');
+      const [lat, setLat] = useState('');
+      const [lng, setLng] = useState('');
+
+      const handleSubmit = () => {
+        onAdd(name, location, parseFloat(lat) || null, parseFloat(lng) || null);
+        setName('');
+        setLocation('');
+        setLat('');
+        setLng('');
+      };
+
+      return (
+        <>
+          <div className="input-group">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Activity name"
+            />
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Location/Address"
+            />
+            <button onClick={handleSubmit}>Add Activity</button>
           </div>
           <div className="input-group">
             <input
