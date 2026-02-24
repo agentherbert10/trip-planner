@@ -317,31 +317,54 @@
 
       // Initialize map
       useEffect(() => {
-        if (activeTab === 'restaurants' && mapRef.current && !mapInstanceRef.current) {
-          mapInstanceRef.current = L.map(mapRef.current).setView([20.8, -156.5], 8);
+        if (activeTab === 'map' && mapRef.current && !mapInstanceRef.current) {
+          mapInstanceRef.current = L.map(mapRef.current).setView([21.3, -158.0], 9);
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 19,
           }).addTo(mapInstanceRef.current);
+
+          // Add hotel markers
+          const hotels = [
+            { name: 'Sheraton Waikiki Beach Resort', lat: 21.2774, lng: -157.8305, dates: 'Feb 27 - Mar 1', color: '#FF6B6B' },
+            { name: 'Four Seasons Ko Olina', lat: 21.339305, lng: -158.125650, dates: 'Mar 1 - Mar 3', color: '#4ECDC4' },
+            { name: 'Aulani Disney Resort', lat: 21.3389, lng: -158.1227, dates: 'Mar 3 - Mar 7', color: '#FFD93D' }
+          ];
+
+          hotels.forEach((hotel) => {
+            const hotelIcon = L.divIcon({
+              html: `<div style="background: ${hotel.color}; color: white; padding: 8px 12px; border-radius: 20px; font-weight: bold; text-align: center; font-size: 12px;">🏨</div>`,
+              iconSize: [40, 40],
+              className: 'hotel-marker'
+            });
+            L.marker([hotel.lat, hotel.lng], { icon: hotelIcon })
+              .bindPopup(`<b>${hotel.name}</b><br>${hotel.dates}`)
+              .addTo(mapInstanceRef.current);
+          });
         }
       }, [activeTab]);
 
       // Add restaurant markers to map
       useEffect(() => {
-        if (mapInstanceRef.current) {
-          // Clear existing markers
+        if (mapInstanceRef.current && activeTab === 'map') {
+          // Clear existing restaurant markers only (keep hotel markers)
           mapInstanceRef.current.eachLayer((layer) => {
-            if (layer instanceof L.Marker) {
+            if (layer instanceof L.Marker && layer._popup && layer._popup._content && layer._popup._content.includes('restaurant')) {
               mapInstanceRef.current.removeLayer(layer);
             }
           });
 
-          // Add new markers
+          // Add new restaurant markers
           restaurants.forEach((r) => {
             if (r.lat && r.lng) {
-              const marker = L.marker([r.lat, r.lng]).addTo(mapInstanceRef.current);
+              const restaurantIcon = L.divIcon({
+                html: `<div style="background: ${r.visited ? '#90EE90' : '#FF9999'}; padding: 6px 10px; border-radius: 16px; font-size: 14px;">🍽️</div>`,
+                iconSize: [32, 32],
+                className: 'restaurant-marker'
+              });
+              const marker = L.marker([r.lat, r.lng], { icon: restaurantIcon }).addTo(mapInstanceRef.current);
               const visited = r.visited ? '✓ ' : '';
-              marker.bindPopup(`<b>${visited}${r.name}</b><br>${r.location}`);
+              marker.bindPopup(`<b>${visited}${r.name}</b><br><small class="restaurant">${r.location}</small>`);
             }
           });
         }
@@ -420,10 +443,10 @@
               Packing List
             </button>
             <button
-              className={`tab-btn ${activeTab === 'restaurants' ? 'active' : ''}`}
-              onClick={() => setActiveTab('restaurants')}
+              className={`tab-btn ${activeTab === 'map' ? 'active' : ''}`}
+              onClick={() => setActiveTab('map')}
             >
-              Restaurants
+              Map
             </button>
           </div>
 
@@ -583,11 +606,12 @@
             </div>
           </div>
 
-          {/* Restaurants Tab */}
-          <div className={`tab-content ${activeTab === 'restaurants' ? 'active' : ''}`}>
+          {/* Map Tab */}
+          <div className={`tab-content ${activeTab === 'map' ? 'active' : ''}`}>
             <div className="section">
+              <h2>Hawaii Map</h2>
               <div id="map" ref={mapRef}></div>
-              <h2>Restaurants to Visit</h2>
+              <h2 style={{ marginTop: '30px' }}>Add Restaurants</h2>
               <RestaurantForm onAdd={addRestaurant} />
               <div className="item-list">
                 {restaurants.map((r) => (
