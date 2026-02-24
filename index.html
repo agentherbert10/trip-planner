@@ -252,19 +252,20 @@
       const [itinerary, setItinerary] = useState([]);
       const [packing, setPacking] = useState([]);
       const [restaurants, setRestaurants] = useState([]);
+      const [packingFilter, setPackingFilter] = useState('All');
       const mapRef = useRef(null);
       const mapInstanceRef = useRef(null);
 
       // Load data from localStorage on mount
       useEffect(() => {
         const defaultPackingItems = [
-          { item: 'Amex platinum card', category: 'Other' },
-          { item: 'Costco card', category: 'Other' },
-          { item: 'Running shoes', category: 'Clothes' },
-          { item: '3 running shorts', category: 'Clothes' },
-          { item: '2 swim trunks', category: 'Clothes' },
-          { item: 'White linen shirt', category: 'Clothes' },
-          { item: 'SD button up shirt', category: 'Clothes' }
+          { item: 'Amex platinum card', category: 'Other', person: 'Justin' },
+          { item: 'Costco card', category: 'Other', person: 'Justin' },
+          { item: 'Running shoes', category: 'Clothes', person: 'Justin' },
+          { item: '3 running shorts', category: 'Clothes', person: 'Justin' },
+          { item: '2 swim trunks', category: 'Clothes', person: 'Justin' },
+          { item: 'White linen shirt', category: 'Clothes', person: 'Justin' },
+          { item: 'SD button up shirt', category: 'Clothes', person: 'Justin' }
         ];
 
         const defaultItinerary = [
@@ -358,9 +359,9 @@
       };
 
       // Packing functions
-      const addPackingItem = (item, category = 'Other') => {
+      const addPackingItem = (item, category = 'Other', person = 'Justin') => {
         if (item) {
-          setPacking([...packing, { id: Date.now(), item, category, packed: false }]);
+          setPacking([...packing, { id: Date.now(), item, category, person, packed: false }]);
         }
       };
 
@@ -512,10 +513,39 @@
           <div className={`tab-content ${activeTab === 'packing' ? 'active' : ''}`}>
             <div className="section">
               <h2>Packing Checklist</h2>
+              
+              {/* Segment Control */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', backgroundColor: '#f0f0f0', padding: '4px', borderRadius: '6px', width: 'fit-content' }}>
+                {['All', 'Justin', 'Eunice', 'Codie'].map((person) => (
+                  <button
+                    key={person}
+                    onClick={() => setPackingFilter(person)}
+                    style={{
+                      padding: '8px 16px',
+                      border: 'none',
+                      borderRadius: '4px',
+                      background: packingFilter === person ? '#667eea' : 'transparent',
+                      color: packingFilter === person ? 'white' : '#333',
+                      cursor: 'pointer',
+                      fontWeight: packingFilter === person ? '600' : '400',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {person}
+                  </button>
+                ))}
+              </div>
+
               <PackingForm onAdd={addPackingItem} />
               {(() => {
+                // Filter by person first
+                const filtered = packingFilter === 'All' 
+                  ? packing 
+                  : packing.filter((item) => item.person === packingFilter);
+                
+                // Then group by category
                 const grouped = {};
-                packing.forEach((item) => {
+                filtered.forEach((item) => {
                   const cat = item.category || 'Other';
                   if (!grouped[cat]) grouped[cat] = [];
                   grouped[cat].push(item);
@@ -643,9 +673,10 @@
     function PackingForm({ onAdd }) {
       const [item, setItem] = useState('');
       const [category, setCategory] = useState('Other');
+      const [person, setPerson] = useState('Justin');
 
       const handleSubmit = () => {
-        onAdd(item, category);
+        onAdd(item, category, person);
         setItem('');
       };
 
@@ -657,6 +688,11 @@
             onChange={(e) => setItem(e.target.value)}
             placeholder="Add item to packing list..."
           />
+          <select value={person} onChange={(e) => setPerson(e.target.value)}>
+            <option value="Justin">Justin</option>
+            <option value="Eunice">Eunice</option>
+            <option value="Codie">Codie</option>
+          </select>
           <select value={category} onChange={(e) => setCategory(e.target.value)}>
             <option value="Clothes">Clothes</option>
             <option value="Toiletries">Toiletries</option>
